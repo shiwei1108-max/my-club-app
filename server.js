@@ -17,6 +17,28 @@ app.post('/api/login', async (req, res) => {
     const token = jwt.sign({ id: user.id, name: user.name, role: user.role }, SECRET_KEY, { expiresIn: '1h' });
     res.json({ message: '登入成功', token, user });
 });
+// === 🌟 新增：公開報名 API (不用 Token) ===
+app.post('/api/join', async (req, res) => {
+    // 為了安全，這裡只接收我們允許的欄位
+    const { name, studentId, dept, email, phone, birthday } = req.body;
+    
+    if (!name || !studentId || !dept) {
+        return res.status(400).json({ error: '必填欄位缺漏' });
+    }
+
+    try {
+        // 建立新成員
+        await prisma.user.create({
+            data: { 
+                name, studentId, dept, email, phone, birthday,
+                password: "123" // 雖然他不用登入，但資料庫還是需要密碼欄位，先給預設值
+            }
+        });
+        res.json({ message: '報名成功！' });
+    } catch (e) {
+        res.status(400).json({ error: '報名失敗 (學號或 Email 可能已存在)' });
+    }
+});
 
 // 驗證警衛
 const checkAuth = (req, res, next) => {
@@ -75,6 +97,9 @@ app.delete('/api/events/:id', checkAuth, async (req, res) => {
     catch (e) { res.status(400).json({ error: '刪除失敗' }); }
 });
 
-app.listen(3000, () => {
-    console.log('全功能伺服器啟動中: http://localhost:3000');
+// 使用 Render 給的 Port，如果沒給才用 3000
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log(`全功能伺服器啟動中: http://localhost:${PORT}`);
 });

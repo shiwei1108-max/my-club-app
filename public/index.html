@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>社員資料登記表 (管理後台)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid black; padding: 8px; text-align: center; }
+        th { background-color: #f3f4f6; }
+    </style>
+</head>
+<div class="max-w-6xl mx-auto mb-6 flex justify-between items-center bg-white p-4 rounded shadow">
+        <div class="flex gap-4 items-center">
+            <h1 class="text-xl font-bold text-gray-800">🏫 社團系統</h1>
+            <div class="h-6 w-px bg-gray-300"></div>
+            <a href="/dashboard.html" class="text-gray-500 hover:text-blue-600 py-1">📊 儀表板</a>
+            <a href="/index.html" class="text-blue-600 font-bold py-1 border-b-2 border-blue-600">👥 成員管理</a>
+            <a href="/events.html" class="text-gray-500 hover:text-blue-600 py-1">📅 活動管理</a>
+        </div>
+        <div class="flex items-center gap-4">
+            <span id="currentUser" class="text-gray-600 font-bold text-sm"></span>
+            <button onclick="logout()" class="text-red-600 hover:text-red-800">登出</button>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto bg-white p-8 shadow-lg">
+        <h2 class="text-xl font-bold mb-6 text-center">113 學年度 社員資料登記表</h2>
+
+        <div class="bg-blue-50 p-4 mb-6 border border-blue-200 rounded">
+            <h3 class="font-bold mb-2 text-blue-800">📝 資料輸入區</h3>
+            <input type="hidden" id="editId">
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div><label class="text-sm text-gray-600">*系/班級</label><input id="dept" type="text" class="w-full border p-2" placeholder="例如: 資工二"></div>
+                <div><label class="text-sm text-gray-600">*學號</label><input id="studentId" type="text" class="w-full border p-2" placeholder="例如: S113..."></div>
+                <div><label class="text-sm text-gray-600">*姓名</label><input id="name" type="text" class="w-full border p-2" placeholder="姓名"></div>
+                
+                <div><label class="text-sm text-gray-600">聯絡方式</label><input id="phone" type="text" class="w-full border p-2"></div>
+                <div><label class="text-sm text-gray-600">信箱</label><input id="email" type="text" class="w-full border p-2"></div>
+                <div><label class="text-sm text-gray-600">生日</label><input id="birthday" type="date" class="w-full border p-2"></div>
+            </div>
+            
+            <div class="flex gap-2">
+                <button id="submitBtn" onclick="saveMember()" class="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold">新增社員</button>
+                <button onclick="resetForm()" class="bg-gray-400 text-white px-6 py-2 rounded hover:bg-gray-500">取消</button>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="w-16">編號</th>
+                        <th>系 / 班級</th>
+                        <th>學號</th>
+                        <th>姓名</th>
+                        <th>聯絡方式</th>
+                        <th>信箱</th>
+                        <th>生日</th>
+                        <th class="w-32">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="memberTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // === 權限檢查 ===
+        const token = localStorage.getItem('club_token');
+        const user = JSON.parse(localStorage.getItem('club_user') || '{}');
+
+        if (!token) {
+            window.location.href = '/login.html';
+        } else {
+            document.getElementById('currentUser').innerText = `Hi, ${user.name}`;
+            loadMembers();
+        }
+
+        // === API 工具 ===
+        async function authFetch(url, options = {}) {
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                ...options.headers
+            };
+            const res = await fetch(url, { ...options, headers });
+            if (res.status === 401 || res.status === 403) {
+                logout();
+                return null;
+            }
+            return res;
+        }
+
+        // === 功能邏輯 ===
+        async function loadMembers() {
+            const res = await authFetch('/api/members');
+            if (!res) return;
+            
+            const members = await res.json();
+            const tbody = document.getElementById('memberTable');
+            
+            tbody.innerHTML = members.map((m, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${m.dept}</td>
+                    <td>${m.studentId}</td>
+                    <td>${m.name}</td>
+                    <td>${m.phone || ''}</td>
+                    <td>${m.email || ''}</td>
+                    <td>${m.birthday || ''}</td>
+                    <td>
+                        <button onclick='startEdit(${JSON.stringify(m)})' class="bg-yellow-500 text-white px-2 py-1 rounded text-xs hover:bg-yellow-600">編輯</button>
+                        <button onclick="deleteMember(${m.id})" class="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600">刪除</button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="8" class="text-gray-400 py-4">目前沒有資料</td></tr>';
+        }
+
+        async function saveMember() {
+            const data = {
+                dept: document.getElementById('dept').value,
+                studentId: document.getElementById('studentId').value,
+                name: document.getElementById('name').value,
+                phone: document.getElementById('phone').value,
+                email: document.getElementById('email').value,
+                birthday: document.getElementById('birthday').value
+            };
+
+            if(!data.name || !data.studentId || !data.dept) return alert('請填寫必填欄位');
+
+            const id = document.getElementById('editId').value;
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/members/${id}` : '/api/members';
+
+            const res = await authFetch(url, { method, body: JSON.stringify(data) });
+            if (res && res.ok) {
+                resetForm();
+                loadMembers();
+            } else {
+                alert('操作失敗');
+            }
+        }
+
+        async function deleteMember(id) {
+            if(!confirm('確定要刪除嗎？')) return;
+            const res = await authFetch(`/api/members/${id}`, { method: 'DELETE' });
+            if (res && res.ok) loadMembers();
+        }
+
+        function startEdit(member) {
+            document.getElementById('editId').value = member.id;
+            document.getElementById('dept').value = member.dept;
+            document.getElementById('studentId').value = member.studentId;
+            document.getElementById('name').value = member.name;
+            document.getElementById('phone').value = member.phone || '';
+            document.getElementById('email').value = member.email || '';
+            document.getElementById('birthday').value = member.birthday || '';
+
+            const btn = document.getElementById('submitBtn');
+            btn.innerText = "確認修改";
+            btn.className = "flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700 font-bold";
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetForm() {
+            document.getElementById('editId').value = '';
+            document.querySelectorAll('input').forEach(i => i.value = '');
+            const btn = document.getElementById('submitBtn');
+            btn.innerText = "新增社員";
+            btn.className = "flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold";
+        }
+
+        function logout() {
+            localStorage.removeItem('club_token');
+            localStorage.removeItem('club_user');
+            window.location.href = '/login.html';
+        }
+    </script>
+</body>
+</html>

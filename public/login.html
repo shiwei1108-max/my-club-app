@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>社團系統登入</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-96">
+        <h1 class="text-2xl font-bold mb-6 text-center text-gray-800">🔐 社團管理系統</h1>
+        
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Email 信箱</label>
+                <input id="email" type="text" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-blue-500" placeholder="請輸入 Email">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">密碼</label>
+                <input id="password" type="password" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-blue-500" placeholder="預設是 123">
+            </div>
+            <button onclick="login()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold">登入</button>
+        </div>
+
+        <div id="msg" class="mt-4 text-center text-red-500 text-sm min-h-[20px]"></div>
+    </div>
+
+    <script>
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const msg = document.getElementById('msg');
+
+            if(!email || !password) {
+                msg.innerText = "請輸入完整資訊";
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await res.json();
+
+                if (res.ok) {
+                    // 登入成功！把感應卡 (Token) 存到瀏覽器裡
+                    localStorage.setItem('club_token', data.token);
+                    localStorage.setItem('club_user', JSON.stringify(data.user));
+                    msg.className = "mt-4 text-center text-green-600 text-sm";
+                    msg.innerText = "登入成功！跳轉中...";
+                    
+                    // 1秒後跳轉到成員管理頁
+                    setTimeout(() => {
+                        window.location.href = '/index.html';
+                    }, 1000);
+                } else {
+                    msg.innerText = data.error;
+                }
+            } catch (e) {
+                msg.innerText = "連線錯誤，請檢查伺服器";
+            }
+        }
+    </script>
+</body>
+</html>

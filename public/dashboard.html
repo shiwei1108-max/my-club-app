@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>社團戰情中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-6xl mx-auto mb-8 flex justify-between items-center bg-white p-4 rounded shadow">
+        <div class="flex gap-4 items-center">
+            <h1 class="text-2xl font-bold text-gray-800">🚀 戰情中心</h1>
+            <div class="h-6 w-px bg-gray-300"></div>
+            <a href="/dashboard.html" class="text-blue-600 font-bold py-1 border-b-2 border-blue-600">📊 儀表板</a>
+            <a href="/index.html" class="text-gray-500 hover:text-blue-600 py-1">👥 成員管理</a>
+            <a href="/events.html" class="text-gray-500 hover:text-blue-600 py-1">📅 活動管理</a>
+        </div>
+        <div class="flex items-center gap-4">
+            <span id="currentUser" class="text-gray-600 font-bold"></span>
+            <button onclick="logout()" class="text-red-600 hover:text-red-800">登出</button>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-lg shadow border-l-4 border-blue-500">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-gray-500 text-sm font-bold uppercase">社團總人數</p>
+                    <p class="text-3xl font-bold text-gray-800 mt-1" id="memberCount">-</p>
+                </div>
+                <div class="bg-blue-100 p-3 rounded-full text-blue-600 text-2xl">👥</div>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow border-l-4 border-green-500">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-gray-500 text-sm font-bold uppercase">規劃中活動</p>
+                    <p class="text-3xl font-bold text-gray-800 mt-1" id="eventCount">-</p>
+                </div>
+                <div class="bg-green-100 p-3 rounded-full text-green-600 text-2xl">📅</div>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow border-l-4 border-purple-500">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-gray-500 text-sm font-bold uppercase">系統狀態</p>
+                    <p class="text-lg font-bold text-green-600 mt-1">正常運作中</p>
+                </div>
+                <div class="bg-purple-100 p-3 rounded-full text-purple-600 text-2xl">⚡</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto bg-white p-8 rounded shadow">
+        <h3 class="text-xl font-bold mb-4 text-gray-700">📢 系統公告</h3>
+        <div class="bg-yellow-50 border border-yellow-200 p-4 rounded">
+            <p class="font-bold text-yellow-800">歡迎使用全新的社團管理系統！</p>
+            <p class="text-sm text-yellow-700 mt-1">請幹部記得定期更新社員資料，並確認活動日期。</p>
+        </div>
+    </div>
+
+    <script>
+        // 權限檢查
+        const token = localStorage.getItem('club_token');
+        const user = JSON.parse(localStorage.getItem('club_user') || '{}');
+        if (!token) window.location.href = '/login.html';
+        document.getElementById('currentUser').innerText = `Hi, ${user.name}`;
+
+        loadStats();
+
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.status === 401) logout();
+                
+                const data = await res.json();
+                
+                // 數字跳動效果
+                animateValue("memberCount", 0, data.members, 1000);
+                animateValue("eventCount", 0, data.events, 1000);
+                
+            } catch (e) {
+                console.error("數據讀取錯誤");
+            }
+        }
+
+        // 數字跳動特效函數
+        function animateValue(id, start, end, duration) {
+            const obj = document.getElementById(id);
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.innerHTML = Math.floor(progress * (end - start) + start);
+                if (progress < 1) window.requestAnimationFrame(step);
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        function logout() {
+            localStorage.removeItem('club_token');
+            window.location.href = '/login.html';
+        }
+    </script>
+</body>
+</html>

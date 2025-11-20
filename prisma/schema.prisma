@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  // === 必填欄位 (沒有 ?) ===
+  name      String   // 姓名
+  studentId String   // 學號 (必填)
+  dept      String   // 系級 (必填)
+  
+  // === 選填欄位 (有 ?) ===
+  email     String?  // 信箱 (改選填)
+  phone     String?  // 聯絡方式 (手機/FB/Line)
+  birthday  String?  // 生日/備註
+  
+  password  String   @default("123")
+  role      String   @default("MEMBER")
+  createdAt DateTime @default(now())
+}
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String
+  date        DateTime
+  description String?
+}

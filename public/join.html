@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>社團線上報名</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-blue-50 min-h-screen p-4 flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+        <h1 class="text-2xl font-bold mb-2 text-center text-blue-800">👋 歡迎加入我們！</h1>
+        <p class="text-gray-500 text-center mb-6 text-sm">請填寫下方資料完成入社登記</p>
+
+        <div class="space-y-4" id="formArea">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">*系級</label>
+                    <input id="dept" type="text" class="w-full border p-2 rounded bg-gray-50" placeholder="例: 資工二">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">*學號</label>
+                    <input id="studentId" type="text" class="w-full border p-2 rounded bg-gray-50" placeholder="S113...">
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">*姓名</label>
+                <input id="name" type="text" class="w-full border p-2 rounded bg-gray-50" placeholder="請輸入真實姓名">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">聯絡方式 (Line/手機)</label>
+                <input id="phone" type="text" class="w-full border p-2 rounded" placeholder="方便幹部聯絡你">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">Email 信箱</label>
+                <input id="email" type="text" class="w-full border p-2 rounded">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">生日</label>
+                <input id="birthday" type="date" class="w-full border p-2 rounded">
+            </div>
+
+            <button onclick="submitJoin()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold shadow hover:bg-blue-700 transition">送出資料</button>
+        </div>
+
+        <div id="successArea" class="hidden text-center py-8">
+            <div class="text-6xl mb-4">🎉</div>
+            <h2 class="text-2xl font-bold text-green-600 mb-2">報名成功！</h2>
+            <p class="text-gray-600">歡迎成為我們的一份子。</p>
+            <p class="text-gray-400 text-sm mt-4">你可以關閉此視窗了。</p>
+        </div>
+    </div>
+
+    <script>
+        async function submitJoin() {
+            const data = {
+                dept: document.getElementById('dept').value,
+                studentId: document.getElementById('studentId').value,
+                name: document.getElementById('name').value,
+                phone: document.getElementById('phone').value,
+                email: document.getElementById('email').value,
+                birthday: document.getElementById('birthday').value
+            };
+
+            if(!data.name || !data.studentId || !data.dept) {
+                return alert('拜託！系級、學號、姓名一定要填喔 🙏');
+            }
+
+            const btn = document.querySelector('button');
+            btn.innerText = "資料傳送中...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/join', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (res.ok) {
+                    // 切換顯示成功畫面
+                    document.getElementById('formArea').classList.add('hidden');
+                    document.getElementById('successArea').classList.remove('hidden');
+                } else {
+                    const err = await res.json();
+                    alert(err.error || '報名失敗');
+                    btn.innerText = "送出資料";
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert('連線錯誤');
+                btn.innerText = "送出資料";
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
